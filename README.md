@@ -2,7 +2,7 @@
 
 A source-first catalog of optional Codex Micro enhancements for macOS. Each addon lives in its own folder and users or agents install only the addons they explicitly select.
 
-`ChatGPT.app` is never edited, copied, replaced, or re-signed.
+The original `ChatGPT.app` is never edited, replaced, re-signed, or quit. The helper launches a pre-existing `/Applications/ChatGPT copy.app` with an isolated profile.
 
 ## Addon catalog
 
@@ -45,7 +45,7 @@ The installer never assumes “all.” Running it without addon ids prints the c
 
 ## Use
 
-Open **Codex Micro Addons** instead of opening ChatGPT directly. If Codex is already running, approve **Quit and Relaunch** so the selected addons can load.
+Open **Codex Micro Addons** while your regular Codex app remains running. It starts **ChatGPT copy.app** side by side with the selected addons loaded. The isolated addon profile may require a one-time sign-in.
 
 - **Conversation scrolling:** Open **Settings > Codex Micro > Knob**, select **Conversation scrolling**, turn clockwise to scroll down, and turn counter-clockwise to scroll up. Selecting a native knob mode restores native handling.
 - **Focus thread window:** Leave Codex in the background and press a mapped Codex Micro thread button. Codex should open that thread and become the focused macOS window.
@@ -54,6 +54,7 @@ Open **Codex Micro Addons** instead of opening ChatGPT directly. If Codex is alr
 
 - macOS 13 or newer.
 - Codex desktop installed as `/Applications/ChatGPT.app`.
+- A matching copy already present as `/Applications/ChatGPT copy.app`. The project does not create this copy automatically.
 - A Codex Micro device for live-hardware verification.
 - English Codex UI for the initial conversation-scrolling settings matcher.
 
@@ -61,9 +62,9 @@ The initial addons were validated against Codex desktop `26.715.31925` (build `5
 
 ## How it works
 
-The locally built launcher starts the unchanged Codex app with Electron debugging bound to a random `127.0.0.1` port. The sidecar discovers the primary renderer and loads only the addon folders copied into the local helper during the build.
+The locally built launcher starts the unchanged `ChatGPT copy.app` with its own data directory under `~/Library/Application Support/Codex Micro Addons/ChatGPT` and Electron debugging bound to a random `127.0.0.1` port. The regular app and profile stay running untouched. The sidecar discovers the copied app's primary renderer and loads only the addon folders copied into the local helper during the build.
 
-Each `addon.json` declares its entrypoint and allowed host actions. The sidecar rejects undeclared host requests. The only current host action is `focus-codex-window`, which asks macOS Launch Services to open the official `com.openai.codex` bundle and accepts no user content.
+Each `addon.json` declares its entrypoint and allowed host actions. The sidecar rejects undeclared host requests. The only current host action is `focus-codex-window`, which uses AppKit to activate the exact copied process launched by the helper and accepts no user content.
 
 See [Security](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
 

@@ -21,6 +21,22 @@ if (installedAddons.length === 0) process.exit(2);
 const injectedSource = installedAddons
   .map(({ id, main, source }) => `${source}\n//# sourceURL=codex-micro-addon://${id}/${main}`)
   .join("\n");
+const initialInjectedSource = `(() => {
+  const existingMessageListeners = typeof getEventListeners === "function"
+    ? (getEventListeners(window).message ?? [])
+    : [];
+  ${injectedSource}
+  const messageGate = globalThis.__codexMicroAddonsConversationScrollMessageGate;
+  if (!messageGate) return;
+  for (const entry of existingMessageListeners) {
+    messageGate.remove("message", entry.listener, entry.useCapture);
+    window.addEventListener("message", entry.listener, {
+      capture: entry.useCapture,
+      passive: entry.passive,
+      once: entry.once,
+    });
+  }
+})()`;
 const allowedHostActions = new Map(
   installedAddons.map((addon) => [addon.id, new Set(addon.hostActions)]),
 );
@@ -61,6 +77,19 @@ function isProcessRunning(pid) {
   }
 }
 
+function focusCopiedApp() {
+  const script = `ObjC.import("AppKit");
+const app = $.NSRunningApplication.runningApplicationWithProcessIdentifier(${chatgptPid});
+if (!app) throw new Error("Copied Codex process not found");
+app.activateWithOptions($.NSApplicationActivateAllWindows | $.NSApplicationActivateIgnoringOtherApps);`;
+  execFile(
+    "/usr/bin/osascript",
+    ["-l", "JavaScript", "-e", script],
+    { timeout: 3000 },
+    () => {},
+  );
+}
+
 function handleHostBinding(payload) {
   let request;
   try {
@@ -75,12 +104,7 @@ function handleHostBinding(payload) {
   const now = Date.now();
   if (now - lastFocusAt < 200) return;
   lastFocusAt = now;
-  execFile(
-    "/usr/bin/open",
-    ["-b", "com.openai.codex"],
-    { timeout: 3000 },
-    () => {},
-  );
+  focusCopiedApp();
 }
 
 function connectToTarget(target) {
@@ -104,8 +128,8 @@ function connectToTarget(target) {
       await send("Runtime.addBinding", { name: HOST_BINDING });
       await send("Page.addScriptToEvaluateOnNewDocument", { source: injectedSource });
       await send("Runtime.evaluate", {
-        expression: injectedSource,
-        includeCommandLineAPI: false,
+        expression: initialInjectedSource,
+        includeCommandLineAPI: true,
         returnByValue: true,
       });
     } catch {

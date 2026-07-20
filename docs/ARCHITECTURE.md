@@ -10,7 +10,8 @@ scripts/build.sh <ids>        copies only selected folders
              |
              v
 Codex Micro Addons.app
-  -> launches unchanged /Applications/ChatGPT.app
+  -> launches unchanged /Applications/ChatGPT copy.app
+  -> uses an isolated addon profile
   -> binds Electron debugging to random 127.0.0.1 port
   -> injector.mjs loads installed addon entrypoints
 ```
@@ -27,15 +28,15 @@ Each `addons/<addon-id>/` folder contains:
 
 ## Launcher and sidecar
 
-`app/launcher.zsh` finds the official app and its bundled Node.js runtime. It asks before relaunching an already-running Codex process, selects an unused localhost port, and starts Codex plus `src/injector.mjs`.
+`app/launcher.zsh` finds the pre-existing app copy and its bundled Node.js runtime, selects an unused localhost port, and starts the copy plus `src/injector.mjs`. Both `CODEX_ELECTRON_USER_DATA_PATH` and Electron's `--user-data-dir` point to an isolated addon profile, so the regular Codex process and profile are not interrupted.
 
-The sidecar discovers only the primary `app://-/` renderer. It registers the selected sources for future document loads and evaluates them in the current document.
+The sidecar discovers only the primary `app://-/` renderer. It registers the selected sources for future document-start execution and evaluates them in the current document. For the current document, it snapshots existing window-message listeners through the CDP command-line API and re-registers them through the conversation addon's gate; no renderer reload is required.
 
-For host actions, the sidecar exposes one CDP binding. Requests are JSON objects containing an addon id and action. Both must match the installed addon's manifest allowlist. The current fixed `focus-codex-window` implementation runs `/usr/bin/open -b com.openai.codex` without interpolating addon input into the command.
+For host actions, the sidecar exposes one CDP binding. Requests are JSON objects containing an addon id and action. Both must match the installed addon's manifest allowlist. The current `focus-codex-window` implementation asks AppKit to activate the exact process id launched by the helper, avoiding ambiguity between apps that share the same bundle identifier.
 
 ## Conversation scrolling
 
-`addons/conversation-scroll/injected.js` adds a third option to the native knob menu. While selected, it intercepts only encoder-turn messages (`act: 2`, `ENC_CW`, `ENC_CC`) and scrolls the highest-scoring conversation viewport. Encoder press and release events remain native.
+`addons/conversation-scroll/injected.js` adds a third option to the native knob menu. It installs a document-start message gate so that, while selected, only encoder-turn messages (`act: 2`, `ENC_CW`, `ENC_CC`) are withheld from native listeners. Each turn immediately scrolls the highest-scoring conversation viewport by about 62 percent of its height. Encoder press and release events remain native.
 
 ## Focus thread window
 

@@ -18,6 +18,58 @@
 
   const modeEnabled = () => localStorage.getItem(STORAGE_KEY) === MODE;
 
+  function isEncoderTurnMessage(event) {
+    const payload = event.data;
+    const input = payload?.type === "codex-micro-hid-event" ? payload.event : null;
+    return input?.act === 2 && (input.key === "ENC_CW" || input.key === "ENC_CC");
+  }
+
+  function installNativeMessageGate() {
+    const existing = globalThis.__codexMicroAddonsConversationScrollMessageGate;
+    if (existing) return existing;
+
+    const originalAddEventListener = window.addEventListener;
+    const originalRemoveEventListener = window.removeEventListener;
+    const wrappedListeners = new WeakMap();
+    const gate = {
+      shouldSuppress: () => false,
+      add(type, listener, options) {
+        return originalAddEventListener.call(window, type, listener, options);
+      },
+      remove(type, listener, options) {
+        return originalRemoveEventListener.call(window, type, listener, options);
+      },
+    };
+
+    window.addEventListener = function addEventListener(type, listener, options) {
+      if (this !== window || type !== "message" || listener == null) {
+        return originalAddEventListener.call(this, type, listener, options);
+      }
+
+      let wrapped = wrappedListeners.get(listener);
+      if (!wrapped) {
+        wrapped = function gatedMessageListener(event) {
+          if (gate.shouldSuppress(event)) return;
+          if (typeof listener === "function") return listener.call(this, event);
+          return listener.handleEvent(event);
+        };
+        wrappedListeners.set(listener, wrapped);
+      }
+      return originalAddEventListener.call(this, type, wrapped, options);
+    };
+
+    window.removeEventListener = function removeEventListener(type, listener, options) {
+      const wrapped = type === "message" && listener != null ? wrappedListeners.get(listener) : null;
+      return originalRemoveEventListener.call(this, type, wrapped ?? listener, options);
+    };
+
+    globalThis.__codexMicroAddonsConversationScrollMessageGate = gate;
+    return gate;
+  }
+
+  const messageGate = installNativeMessageGate();
+  messageGate.shouldSuppress = (event) => modeEnabled() && isEncoderTurnMessage(event);
+
   function directTextElements(root) {
     return [...root.querySelectorAll("span, div")].filter((element) => {
       const ownText = [...element.childNodes]
@@ -184,8 +236,8 @@
     const candidate = scrollableCandidates()[0]?.element ?? document.scrollingElement;
     if (!candidate) return false;
 
-    const distance = Math.max(140, Math.min(320, candidate.clientHeight * 0.24));
-    candidate.scrollBy({ top: direction * distance, left: 0, behavior: "smooth" });
+    const distance = Math.max(420, Math.min(800, candidate.clientHeight * 0.62));
+    candidate.scrollBy({ top: direction * distance, left: 0, behavior: "auto" });
     globalThis.__codexMicroAddonsConversationScroll.lastScroll = {
       direction,
       distance,
@@ -199,9 +251,7 @@
   function handleMicroMessage(event) {
     const payload = event.data;
     const input = payload?.type === "codex-micro-hid-event" ? payload.event : null;
-    const isEncoderTurn =
-      input?.act === 2 && (input.key === "ENC_CW" || input.key === "ENC_CC");
-    if (!modeEnabled() || !isEncoderTurn) return;
+    if (!modeEnabled() || !isEncoderTurnMessage(event)) return;
 
     event.stopImmediatePropagation();
     event.stopPropagation();
@@ -212,7 +262,7 @@
     }, 0);
   }
 
-  window.addEventListener("message", handleMicroMessage, true);
+  messageGate.add("message", handleMicroMessage, true);
   window.addEventListener("click", handleNativeModeSelection, true);
 
   function startUiObserver() {
@@ -245,8 +295,9 @@
     lastScroll: null,
     dispose() {
       disposed = true;
+      messageGate.shouldSuppress = () => false;
       observer?.disconnect();
-      window.removeEventListener("message", handleMicroMessage, true);
+      messageGate.remove("message", handleMicroMessage, true);
       window.removeEventListener("click", handleNativeModeSelection, true);
       if (scrollTimer) clearTimeout(scrollTimer);
     },

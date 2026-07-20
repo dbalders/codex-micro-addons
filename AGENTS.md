@@ -4,7 +4,8 @@ This repository is a catalog. Every addon is isolated under `addons/<addon-id>/`
 
 ## Safety boundary
 
-- Do not edit, replace, copy, re-sign, or unpack `/Applications/ChatGPT.app`.
+- Do not edit, replace, copy, re-sign, unpack, or quit `/Applications/ChatGPT.app`.
+- Use only a pre-existing `/Applications/ChatGPT copy.app`; do not create it without explicit user approval.
 - Do not modify `~/.codex`, credentials, conversations, plugins, or account settings.
 - Do not publish binaries or create a GitHub release unless explicitly requested.
 - Preserve the localhost-only debugging address in `app/launcher.zsh`.
@@ -21,7 +22,7 @@ This repository is a catalog. Every addon is isolated under `addons/<addon-id>/`
 ## Install workflow
 
 1. Read `README.md`, `SECURITY.md`, and `docs/ARCHITECTURE.md`.
-2. Confirm `/Applications/ChatGPT.app` exists.
+2. Confirm both `/Applications/ChatGPT.app` and `/Applications/ChatGPT copy.app` exist and have matching versions.
 3. Run `./scripts/check.sh`.
 4. Run `./scripts/install.sh <addon-id> [<addon-id> ...]` only after selection is clear.
 5. Verify the helper:
@@ -36,6 +37,8 @@ This repository is a catalog. Every addon is isolated under `addons/<addon-id>/`
    ```sh
    /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/ChatGPT.app/Contents/Info.plist
    /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/ChatGPT.app/Contents/Info.plist
+   /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' '/Applications/ChatGPT copy.app/Contents/Info.plist'
+   /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' '/Applications/ChatGPT copy.app/Contents/Info.plist'
    ```
 
 7. State separately whether a physical Codex Micro was detected and tested. Synthetic events are not live-hardware proof.
@@ -51,4 +54,5 @@ This repository is a catalog. Every addon is isolated under `addons/<addon-id>/`
 - The installed helper contains exactly the selected addon folders.
 - The helper has a valid ad-hoc signature.
 - `/Applications/ChatGPT.app` still passes `codesign --verify --deep --strict`.
+- `/Applications/ChatGPT copy.app` still passes `codesign --verify --deep --strict`.
 - No OpenAI binary, icon, authentication state, or conversation content enters the repository.

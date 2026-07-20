@@ -1,73 +1,87 @@
-# Codex Micro Plus
+# Codex Micro Addons
 
-An unofficial macOS runtime extension that adds **Conversation scrolling** to the existing **Codex Settings > Codex Micro > Knob** menu.
+A source-first catalog of optional Codex Micro enhancements for macOS. Each addon lives in its own folder and users or agents install only the addons they explicitly select.
 
-- Turn clockwise to scroll down through the active conversation.
-- Turn counter-clockwise to scroll up.
-- Knob clicks and every other Codex Micro input retain their normal behavior.
-- `ChatGPT.app` is never edited, replaced, or re-signed.
+`ChatGPT.app` is never edited, copied, replaced, or re-signed.
 
-## Requirements
+## Addon catalog
 
-- macOS 13 or newer.
-- The Codex desktop app installed as `/Applications/ChatGPT.app`.
-- A Codex Micro device.
-- English selected as the Codex interface language for this initial release.
+| Addon | What it does | Folder |
+| --- | --- | --- |
+| Conversation scrolling | Uses the knob to scroll the active conversation up and down. | [`addons/conversation-scroll`](addons/conversation-scroll) |
+| Focus thread window | Brings Codex to the foreground when a mapped thread button opens its thread. | [`addons/focus-thread-window`](addons/focus-thread-window) |
 
-Version `0.1.0` was validated against Codex desktop `26.715.31925` (build `5551`). Codex updates can change internal UI or hardware behavior, so compatibility with later builds is not guaranteed.
+List the catalog locally:
+
+```sh
+./scripts/list-addons.sh
+```
 
 ## Give it to an agent
 
-Send an agent the repository URL and ask it to install and verify Codex Micro Plus. The repository-level [`AGENTS.md`](AGENTS.md) contains the exact safety boundary, commands, and evidence it should report.
+The repository-level [`AGENTS.md`](AGENTS.md) tells an agent how to inspect the catalog, ask which addons the user wants, install only those folders, and report separate synthetic and physical-hardware evidence.
 
-For example:
+Example request:
 
-> Clone `https://github.com/dbalders/codex-micro-plus`, read `AGENTS.md`, install it locally, run the checks, and tell me the detected Codex version and any remaining live-hardware test.
+> Clone `https://github.com/dbalders/codex-micro-addons`, read `AGENTS.md`, show me the available addons, and install `conversation-scroll` and `focus-thread-window` after checking them.
 
-There are no release binaries to download. The launcher is built from the checked-in source on the user's own Mac.
+There are no release binaries. The helper is composed from the selected source folders on the user's own Mac.
 
-## Install directly from source
+## Install
 
 ```sh
-git clone https://github.com/dbalders/codex-micro-plus.git
-cd codex-micro-plus
-./scripts/install.sh
+git clone https://github.com/dbalders/codex-micro-addons.git
+cd codex-micro-addons
+./scripts/install.sh conversation-scroll focus-thread-window
 ```
 
-The installer builds an ad-hoc-signed launcher and installs it to `~/Applications/Codex Micro Plus.app`. It does not modify Codex.
+Install just one addon by passing only its folder id:
 
-## Use it
+```sh
+./scripts/install.sh conversation-scroll
+```
 
-1. Open **Codex Micro Plus** instead of opening ChatGPT directly.
-2. If Codex is already running, approve **Quit and Relaunch**.
-3. Open **Settings > Codex Micro > Knob**.
-4. Select **Conversation scrolling**.
+The installer never assumes “all.” Running it without addon ids prints the catalog and exits. It builds an ad-hoc-signed `~/Applications/Codex Micro Addons.app` containing only the selected addon folders.
 
-Selecting **Composer navigation** or **Reasoning only** switches back to Codex's native handling immediately.
+## Use
+
+Open **Codex Micro Addons** instead of opening ChatGPT directly. If Codex is already running, approve **Quit and Relaunch** so the selected addons can load.
+
+- **Conversation scrolling:** Open **Settings > Codex Micro > Knob**, select **Conversation scrolling**, turn clockwise to scroll down, and turn counter-clockwise to scroll up. Selecting a native knob mode restores native handling.
+- **Focus thread window:** Leave Codex in the background and press a mapped Codex Micro thread button. Codex should open that thread and become the focused macOS window.
+
+## Requirements and compatibility
+
+- macOS 13 or newer.
+- Codex desktop installed as `/Applications/ChatGPT.app`.
+- A Codex Micro device for live-hardware verification.
+- English Codex UI for the initial conversation-scrolling settings matcher.
+
+The initial addons were validated against Codex desktop `26.715.31925` (build `5551`). Codex updates can change private UI and hardware-message behavior.
 
 ## How it works
 
-The launcher starts the unchanged Codex desktop app with Electron's remote-debugging interface bound to a random localhost port. A small sidecar connects to the primary renderer and loads the extension at runtime. The extension adds one menu item, stores the choice in renderer-local storage, and intercepts only encoder-turn events while that choice is active.
+The locally built launcher starts the unchanged Codex app with Electron debugging bound to a random `127.0.0.1` port. The sidecar discovers the primary renderer and loads only the addon folders copied into the local helper during the build.
 
-The debugging endpoint exists only while that Codex process is running and is bound to `127.0.0.1`. Any process running as your macOS user can generally access localhost services, so review the source before use. See [Security](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
+Each `addon.json` declares its entrypoint and allowed host actions. The sidecar rejects undeclared host requests. The only current host action is `focus-codex-window`, which asks macOS Launch Services to open the official `com.openai.codex` bundle and accepts no user content.
 
-## Build and test
+See [Security](SECURITY.md) and [Architecture](docs/ARCHITECTURE.md).
+
+## Check the repository
 
 ```sh
 ./scripts/check.sh
 ```
 
-The command checks JavaScript and shell syntax, validates the plist, ensures the repository is not redistributing an OpenAI app or icon, builds the local launcher, and verifies its signature. Live hardware testing requires Codex and a connected Codex Micro.
+Checks cover JavaScript and shell syntax, addon manifests, one-at-a-time addon composition, combined composition, source-asset boundaries, and the generated helper's code signature. Physical-device behavior remains a separate test.
 
-## Status and limitations
+## Status
 
-- This is an unsupported runtime extension, not an OpenAI plugin or official Codex feature.
-- The initial UI matcher supports English only.
-- App updates may require selector or event-bridge changes.
-- It currently supports macOS only.
-- The repository does not contain or redistribute `ChatGPT.app`, OpenAI artwork, or Codex Micro firmware.
-- The project intentionally publishes source only; it does not attach launcher binaries to GitHub Releases.
+- Unsupported runtime addons, not official OpenAI plugins or Codex features.
+- Source only; no launcher binaries are attached to GitHub Releases.
+- macOS only.
+- No OpenAI application, icon, firmware, authentication state, or conversation data is included.
 
 ## License and trademarks
 
-The extension source is licensed under the [MIT License](LICENSE). Codex, ChatGPT, OpenAI, Work Louder, and Codex Micro are trademarks of their respective owners. This project is not affiliated with, endorsed by, or sponsored by OpenAI or Work Louder.
+The addon source is licensed under the [MIT License](LICENSE). Codex, ChatGPT, OpenAI, Work Louder, and Codex Micro are trademarks of their respective owners. This project is not affiliated with, endorsed by, or sponsored by OpenAI or Work Louder.

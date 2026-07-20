@@ -1,6 +1,6 @@
 # Notices
 
-Codex Micro Plus is an independent, unofficial project.
+Codex Micro Addons is an independent, unofficial project.
 
 The repository does not include the ChatGPT or Codex desktop application, OpenAI artwork, Work Louder firmware, or other proprietary assets. Users must obtain the official applications and hardware separately.
 

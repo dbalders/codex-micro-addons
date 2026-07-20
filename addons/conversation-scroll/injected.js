@@ -1,15 +1,15 @@
 (() => {
   "use strict";
 
-  const VERSION = "__VERSION__";
-  const STORAGE_KEY = "codex-micro-plus.encoder-mode";
+  const VERSION = "__ADDON_VERSION__";
+  const STORAGE_KEY = "codex-micro-addons.conversation-scroll.mode";
   const MODE = "conversation-scroll";
   const LABEL = "Conversation scrolling";
   const DESCRIPTION = "Scroll the active conversation up and down";
   const NATIVE_LABELS = new Set(["Composer navigation", "Reasoning only"]);
 
-  if (globalThis.__codexMicroPlus?.version === VERSION) return;
-  globalThis.__codexMicroPlus?.dispose?.();
+  if (globalThis.__codexMicroAddonsConversationScroll?.version === VERSION) return;
+  globalThis.__codexMicroAddonsConversationScroll?.dispose?.();
 
   let disposed = false;
   let observer = null;
@@ -57,14 +57,14 @@
     if (!row) return null;
     return [...row.querySelectorAll("button")].find((button) => {
       const text = elementText(button);
-      return NATIVE_LABELS.has(text) || text.includes(LABEL) || button.dataset.codexMicroPlusTrigger === "true";
+      return NATIVE_LABELS.has(text) || text.includes(LABEL) || button.dataset.codexMicroAddonConversationScrollTrigger === "true";
     }) ?? null;
   }
 
   function syncTrigger() {
     const trigger = findKnobTrigger();
     if (!trigger) return;
-    trigger.dataset.codexMicroPlusTrigger = "true";
+    trigger.dataset.codexMicroAddonConversationScrollTrigger = "true";
 
     const textElements = directTextElements(trigger);
     const labelElement =
@@ -73,13 +73,13 @@
     if (!labelElement) return;
 
     if (modeEnabled()) {
-      if (!labelElement.dataset.codexMicroPlusOriginal) {
-        labelElement.dataset.codexMicroPlusOriginal = elementText(labelElement);
+      if (!labelElement.dataset.codexMicroAddonConversationScrollOriginal) {
+        labelElement.dataset.codexMicroAddonConversationScrollOriginal = elementText(labelElement);
       }
       setOwnText(labelElement, LABEL);
-    } else if (labelElement.dataset.codexMicroPlusOriginal) {
-      setOwnText(labelElement, labelElement.dataset.codexMicroPlusOriginal);
-      delete labelElement.dataset.codexMicroPlusOriginal;
+    } else if (labelElement.dataset.codexMicroAddonConversationScrollOriginal) {
+      setOwnText(labelElement, labelElement.dataset.codexMicroAddonConversationScrollOriginal);
+      delete labelElement.dataset.codexMicroAddonConversationScrollOriginal;
     }
   }
 
@@ -98,13 +98,13 @@
   function injectMenuOption() {
     const menus = [...document.querySelectorAll('[role="menu"], [role="listbox"]')];
     for (const menu of menus) {
-      if (menu.querySelector('[data-codex-micro-plus-option="true"]')) continue;
+      if (menu.querySelector('[data-codex-micro-addon-conversation-scroll-option="true"]')) continue;
       const items = [...menu.querySelectorAll('[role="menuitem"], [role="option"]')];
       const template = items.find((item) => elementText(item).includes("Reasoning only"));
       if (!template) continue;
 
       const option = template.cloneNode(true);
-      option.dataset.codexMicroPlusOption = "true";
+      option.dataset.codexMicroAddonConversationScrollOption = "true";
       option.removeAttribute("data-highlighted");
       option.removeAttribute("data-state");
       option.setAttribute("aria-checked", modeEnabled() ? "true" : "false");
@@ -139,7 +139,7 @@
     const item = event.target instanceof Element
       ? event.target.closest('[role="menuitem"], [role="option"]')
       : null;
-    if (!item || item.dataset.codexMicroPlusOption === "true") return;
+    if (!item || item.dataset.codexMicroAddonConversationScrollOption === "true") return;
     const text = elementText(item);
     if (![...NATIVE_LABELS].some((label) => text.includes(label))) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -186,7 +186,7 @@
 
     const distance = Math.max(140, Math.min(320, candidate.clientHeight * 0.24));
     candidate.scrollBy({ top: direction * distance, left: 0, behavior: "smooth" });
-    globalThis.__codexMicroPlus.lastScroll = {
+    globalThis.__codexMicroAddonsConversationScroll.lastScroll = {
       direction,
       distance,
       targetTag: candidate.tagName,
@@ -228,7 +228,7 @@
 
   startUiObserver();
 
-  globalThis.__codexMicroPlus = {
+  globalThis.__codexMicroAddonsConversationScroll = {
     version: VERSION,
     get enabled() {
       return modeEnabled();

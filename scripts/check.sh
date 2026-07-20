@@ -13,10 +13,16 @@ if [[ -z "$node_binary" ]]; then
 fi
 
 "$node_binary" --check "$repo_root/src/injector.mjs"
-"$node_binary" --check "$repo_root/src/injected.js"
+for addon_source in "$repo_root"/addons/*/*.js(N); do
+  "$node_binary" --check "$addon_source"
+done
+for manifest in "$repo_root"/addons/*/addon.json(N); do
+  "$node_binary" -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$manifest"
+done
 /bin/zsh -n "$repo_root/app/launcher.zsh"
 /bin/zsh -n "$repo_root/scripts/build.sh"
 /bin/zsh -n "$repo_root/scripts/install.sh"
+/bin/zsh -n "$repo_root/scripts/list-addons.sh"
 /usr/bin/plutil -lint "$repo_root/app/Info.plist" >/dev/null
 
 if /usr/bin/find "$repo_root" \( -path "$repo_root/.git" -o -path "$repo_root/dist" \) -prune -o \( -type f -name '*.icns' -o -type d -name '*.app' \) -print | /usr/bin/grep -q .; then
@@ -24,11 +30,29 @@ if /usr/bin/find "$repo_root" \( -path "$repo_root/.git" -o -path "$repo_root/di
   exit 1
 fi
 
-"$repo_root/scripts/build.sh"
-/usr/bin/codesign --verify --deep --strict "$repo_root/dist/Codex Micro Plus.app"
+list_output="$("$repo_root/scripts/list-addons.sh")"
+for expected in conversation-scroll focus-thread-window; do
+  if [[ "$list_output" != *"$expected"* ]]; then
+    print -u2 "Addon missing from catalog: $expected"
+    exit 1
+  fi
+done
 
-if ! /usr/bin/grep -Fq "const VERSION = \"$(<"$repo_root/VERSION")\"" "$repo_root/dist/Codex Micro Plus.app/Contents/Resources/injected.js"; then
-  print -u2 "Built renderer version does not match VERSION"
+"$repo_root/scripts/build.sh" conversation-scroll
+[[ -d "$repo_root/dist/Codex Micro Addons.app/Contents/Resources/addons/conversation-scroll" ]]
+[[ ! -d "$repo_root/dist/Codex Micro Addons.app/Contents/Resources/addons/focus-thread-window" ]]
+
+"$repo_root/scripts/build.sh" focus-thread-window
+[[ ! -d "$repo_root/dist/Codex Micro Addons.app/Contents/Resources/addons/conversation-scroll" ]]
+[[ -d "$repo_root/dist/Codex Micro Addons.app/Contents/Resources/addons/focus-thread-window" ]]
+
+"$repo_root/scripts/build.sh" conversation-scroll focus-thread-window
+readonly built_app="$repo_root/dist/Codex Micro Addons.app"
+/usr/bin/codesign --verify --deep --strict "$built_app"
+[[ -d "$built_app/Contents/Resources/addons/conversation-scroll" ]]
+[[ -d "$built_app/Contents/Resources/addons/focus-thread-window" ]]
+if /usr/bin/grep -R -E '__ADDON_(ID|VERSION)__' "$built_app/Contents/Resources/addons" >/dev/null; then
+  print -u2 "Built addon still contains an unresolved template token"
   exit 1
 fi
 

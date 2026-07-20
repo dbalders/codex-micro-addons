@@ -1,0 +1,14 @@
+{
+  "id": "conversation-scroll",
+  "name": "Conversation scrolling",
+  "version": "0.1.0",
+  "description": "Use the Codex Micro knob to scroll the active conversation up and down.",
+  "main": "injected.js",
+  "hostActions": [],
+  "testedCodex": [
+    {
+      "version": "26.715.31925",
+      "build": "5551"
+    }
+  ]
+}

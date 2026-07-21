@@ -41,7 +41,7 @@ Install just one addon by passing only its folder id:
 ./scripts/install.sh conversation-scroll
 ```
 
-The installer never assumes “all.” Running it without addon ids prints the catalog and exits. It builds an ad-hoc-signed `~/Applications/Codex Micro Addons.app` containing only the selected addon folders.
+The installer never assumes “all.” Running it without addon ids prints the catalog and exits. It builds an ad-hoc-signed, Spotlight-indexable `~/Applications/Codex Micro Addons.app` containing only the selected addon folders. The native applet wrapper is compiled locally with macOS `osacompile`; no launcher binary is stored in the repository.
 
 ## Use
 

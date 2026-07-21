@@ -23,9 +23,10 @@ fi
 /bin/mkdir -p "$dist_dir"
 if [[ -e "$app_bundle" ]]; then /bin/rm -rf "$app_bundle"; fi
 
-/bin/mkdir -p "$app_bundle/Contents/MacOS" "$app_bundle/Contents/Resources/addons"
+/usr/bin/osacompile -o "$app_bundle" "$repo_root/app/launcher.applescript"
+/bin/mkdir -p "$app_bundle/Contents/Resources/addons"
 /usr/bin/sed "s/__VERSION__/$version/g" "$repo_root/app/Info.plist" > "$app_bundle/Contents/Info.plist"
-/usr/bin/install -m 755 "$repo_root/app/launcher.zsh" "$app_bundle/Contents/MacOS/Codex Micro Addons"
+/usr/bin/install -m 755 "$repo_root/app/launcher.zsh" "$app_bundle/Contents/Resources/launcher.zsh"
 /usr/bin/install -m 644 "$repo_root/src/injector.mjs" "$app_bundle/Contents/Resources/injector.mjs"
 
 typeset -A seen_addons

@@ -49,6 +49,11 @@ done
 "$repo_root/scripts/build.sh" conversation-scroll focus-thread-window
 readonly built_app="$repo_root/dist/Codex Micro Addons.app"
 /usr/bin/codesign --verify --deep --strict "$built_app"
+if ! /usr/bin/file "$built_app/Contents/MacOS/applet" | /usr/bin/grep -q 'Mach-O universal binary'; then
+  print -u2 "Generated helper must use the native universal applet wrapper"
+  exit 1
+fi
+[[ -x "$built_app/Contents/Resources/launcher.zsh" ]]
 [[ -d "$built_app/Contents/Resources/addons/conversation-scroll" ]]
 [[ -d "$built_app/Contents/Resources/addons/focus-thread-window" ]]
 if /usr/bin/grep -R -E '__ADDON_(ID|VERSION)__' "$built_app/Contents/Resources/addons" >/dev/null; then

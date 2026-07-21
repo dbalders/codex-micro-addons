@@ -10,6 +10,7 @@ scripts/build.sh <ids>        copies only selected folders
              |
              v
 Codex Micro Addons.app
+  -> native macOS applet wrapper for indexing and Finder visibility
   -> launches unchanged /Applications/ChatGPT copy.app
   -> uses an isolated addon profile
   -> binds Electron debugging to random 127.0.0.1 port
@@ -28,7 +29,7 @@ Each `addons/<addon-id>/` folder contains:
 
 ## Launcher and sidecar
 
-`app/launcher.zsh` finds the pre-existing app copy and its bundled Node.js runtime, selects an unused localhost port, and starts the copy plus `src/injector.mjs`. Both `CODEX_ELECTRON_USER_DATA_PATH` and Electron's `--user-data-dir` point to an isolated addon profile, so the regular Codex process and profile are not interrupted.
+The build compiles `app/launcher.applescript` locally into a native universal macOS applet. That gives Finder, Spotlight, and Launch Services a normal application executable without placing a binary in the repository. The applet starts `app/launcher.zsh`, which finds the pre-existing app copy and its bundled Node.js runtime, selects an unused localhost port, and starts the copy plus `src/injector.mjs`. Both `CODEX_ELECTRON_USER_DATA_PATH` and Electron's `--user-data-dir` point to an isolated addon profile, so the regular Codex process and profile are not interrupted.
 
 The sidecar discovers only the primary `app://-/` renderer. It registers the selected sources for future document-start execution and evaluates them in the current document. For the current document, it snapshots existing window-message listeners through the CDP command-line API and re-registers them through the conversation addon's gate; no renderer reload is required.
 

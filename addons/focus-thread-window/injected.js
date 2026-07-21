@@ -3,9 +3,15 @@
 
   const ADDON_ID = "__ADDON_ID__";
   const VERSION = "__ADDON_VERSION__";
+  const registry = globalThis.__codexMicroAddonsRegistry instanceof Map
+    ? globalThis.__codexMicroAddonsRegistry
+    : (globalThis.__codexMicroAddonsRegistry = new Map());
   const HOST_BINDING = "codexMicroAddonsHost";
 
-  if (globalThis.__codexMicroAddonsFocusThreadWindow?.version === VERSION) return;
+  if (globalThis.__codexMicroAddonsFocusThreadWindow?.version === VERSION) {
+    registry.set(ADDON_ID, globalThis.__codexMicroAddonsFocusThreadWindow);
+    return;
+  }
   globalThis.__codexMicroAddonsFocusThreadWindow?.dispose?.();
 
   let focusTimer = null;
@@ -35,12 +41,18 @@
 
   window.addEventListener("message", handleMicroMessage, true);
 
-  globalThis.__codexMicroAddonsFocusThreadWindow = {
+  const addonState = {
     version: VERSION,
     lastFocusRequestAt: null,
     dispose() {
       window.removeEventListener("message", handleMicroMessage, true);
       if (focusTimer) clearTimeout(focusTimer);
+      if (registry.get(ADDON_ID) === addonState) registry.delete(ADDON_ID);
+      if (globalThis.__codexMicroAddonsFocusThreadWindow === addonState) {
+        delete globalThis.__codexMicroAddonsFocusThreadWindow;
+      }
     },
   };
+  globalThis.__codexMicroAddonsFocusThreadWindow = addonState;
+  registry.set(ADDON_ID, addonState);
 })();

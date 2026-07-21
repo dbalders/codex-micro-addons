@@ -1,7 +1,7 @@
 {
   "id": "focus-thread-window",
   "name": "Focus thread window",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Bring Codex to the foreground when a Codex Micro thread button opens a mapped thread.",
   "main": "injected.js",
   "hostActions": [
@@ -11,6 +11,10 @@
     {
       "version": "26.715.31925",
       "build": "5551"
+    },
+    {
+      "version": "26.715.61943",
+      "build": "5628"
     }
   ]
 }

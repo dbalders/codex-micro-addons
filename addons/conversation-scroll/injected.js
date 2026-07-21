@@ -1,14 +1,21 @@
 (() => {
   "use strict";
 
+  const ADDON_ID = "__ADDON_ID__";
   const VERSION = "__ADDON_VERSION__";
+  const registry = globalThis.__codexMicroAddonsRegistry instanceof Map
+    ? globalThis.__codexMicroAddonsRegistry
+    : (globalThis.__codexMicroAddonsRegistry = new Map());
   const STORAGE_KEY = "codex-micro-addons.conversation-scroll.mode";
   const MODE = "conversation-scroll";
   const LABEL = "Conversation scrolling";
   const DESCRIPTION = "Scroll the active conversation up and down";
   const NATIVE_LABELS = new Set(["Composer navigation", "Reasoning only"]);
 
-  if (globalThis.__codexMicroAddonsConversationScroll?.version === VERSION) return;
+  if (globalThis.__codexMicroAddonsConversationScroll?.version === VERSION) {
+    registry.set(ADDON_ID, globalThis.__codexMicroAddonsConversationScroll);
+    return;
+  }
   globalThis.__codexMicroAddonsConversationScroll?.dispose?.();
 
   let disposed = false;
@@ -68,6 +75,8 @@
   }
 
   const messageGate = installNativeMessageGate();
+  // Native and stale wrapped listeners return without consuming encoder turns;
+  // the current raw addon listener handles and stops the event afterward.
   messageGate.shouldSuppress = (event) => modeEnabled() && isEncoderTurnMessage(event);
 
   function directTextElements(root) {
@@ -258,7 +267,8 @@
     if (scrollTimer) clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       scrollTimer = null;
-      scrollConversation(input.key === "ENC_CW" ? 1 : -1);
+      // The Micro firmware's encoder labels are opposite its physical rotation.
+      scrollConversation(input.key === "ENC_CC" ? 1 : -1);
     }, 0);
   }
 
@@ -278,7 +288,7 @@
 
   startUiObserver();
 
-  globalThis.__codexMicroAddonsConversationScroll = {
+  const addonState = {
     version: VERSION,
     get enabled() {
       return modeEnabled();
@@ -293,13 +303,24 @@
     },
     scroll: scrollConversation,
     lastScroll: null,
-    dispose() {
+    dispose(options = {}) {
       disposed = true;
       messageGate.shouldSuppress = () => false;
       observer?.disconnect();
       messageGate.remove("message", handleMicroMessage, true);
       window.removeEventListener("click", handleNativeModeSelection, true);
       if (scrollTimer) clearTimeout(scrollTimer);
+      if (options.clearPreference === true) localStorage.removeItem(STORAGE_KEY);
+      document
+        .querySelectorAll('[data-codex-micro-addon-conversation-scroll-option="true"]')
+        .forEach((element) => element.remove());
+      syncTrigger();
+      if (registry.get(ADDON_ID) === addonState) registry.delete(ADDON_ID);
+      if (globalThis.__codexMicroAddonsConversationScroll === addonState) {
+        delete globalThis.__codexMicroAddonsConversationScroll;
+      }
     },
   };
+  globalThis.__codexMicroAddonsConversationScroll = addonState;
+  registry.set(ADDON_ID, addonState);
 })();

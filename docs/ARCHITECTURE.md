@@ -11,10 +11,10 @@ scripts/build.sh <ids>        copies only selected folders
              v
 Codex Micro Addons.app
   -> native macOS applet wrapper for indexing and Finder visibility
-  -> launches unchanged /Applications/ChatGPT copy.app
-  -> uses an isolated addon profile
-  -> binds Electron debugging to random 127.0.0.1 port
-  -> injector.mjs loads installed addon entrypoints
+  -> finds already-running unchanged /Applications/ChatGPT.app
+  -> briefly opens its Node inspector on 127.0.0.1:9229
+  -> injector.mjs loads installed addon entrypoints into that process
+  -> closes the inspector and exits; addons remain active in Codex
 ```
 
 ## Addon contract
@@ -27,13 +27,13 @@ Each `addons/<addon-id>/` folder contains:
 
 `scripts/build.sh` requires one or more explicit addon ids, validates their manifests, replaces addon id/version template tokens, and copies only those folders into the generated helper. No-argument builds fail with the catalog instead of assuming all addons.
 
-## Launcher and sidecar
+## Launcher and injector
 
-The build compiles `app/launcher.applescript` locally into a native universal macOS applet. That gives Finder, Spotlight, and Launch Services a normal application executable without placing a binary in the repository. The applet starts `app/launcher.zsh`, which finds the pre-existing app copy and its bundled Node.js runtime, selects an unused localhost port, and starts the copy plus `src/injector.mjs`. Both `CODEX_ELECTRON_USER_DATA_PATH` and Electron's `--user-data-dir` point to an isolated addon profile, so the regular Codex process and profile are not interrupted.
+The build compiles `app/launcher.applescript` locally into a native universal macOS applet. That gives Finder, Spotlight, and Launch Services a normal application executable without placing a binary in the repository. The applet starts `app/launcher.zsh`, which requires and resolves the exact already-running main process for `/Applications/ChatGPT.app`. It refuses to proceed if TCP port 9229 already has any listener, pre-starts the polling injector, then sends the ready Electron process `SIGUSR1` to open Node's localhost inspector without terminating or relaunching Codex.
 
-The sidecar discovers only the primary `app://-/` renderer. It registers the selected sources for future document-start execution and evaluates them in the current document. For the current document, it snapshots existing window-message listeners through the CDP command-line API and re-registers them through the conversation addon's gate; no renderer reload is required.
+`src/injector.mjs` connects to the Electron main process, validates its PID, and uses Electron's `webContents.debugger` API to evaluate the selected sources only in non-overlay `app://-/` renderers. It waits up to ten seconds for the first eligible renderer during a cold launch. It snapshots existing window-message listeners through the DevTools command-line API and re-registers them through the conversation addon's gate; no renderer reload is required. A renderer registry disposes addons omitted from a later installation. Main-process listeners reinject the selected addons after a renderer reload or into a later Codex window. The external injector closes and verifies the localhost inspector in a guaranteed cleanup path before exiting.
 
-For host actions, the sidecar exposes one CDP binding. Requests are JSON objects containing an addon id and action. Both must match the installed addon's manifest allowlist. The current `focus-codex-window` implementation asks AppKit to activate the exact process id launched by the helper, avoiding ambiguity between apps that share the same bundle identifier.
+For host actions, the renderer emits a fixed-prefix console message containing an addon id and action. The in-process main listener requires both values to match the installed addon's manifest allowlist. The current `focus-codex-window` implementation activates the exact running PID through AppKit, then resolves and focuses the Electron `BrowserWindow` that emitted the request.
 
 ## Conversation scrolling
 

@@ -25,6 +25,12 @@ done
 /bin/zsh -n "$repo_root/scripts/list-addons.sh"
 /usr/bin/plutil -lint "$repo_root/app/Info.plist" >/dev/null
 
+if /usr/bin/grep -q 'ChatGPT copy.app\|--user-data-dir\|--remote-debugging-port' \
+  "$repo_root/app/launcher.zsh"; then
+  print -u2 "Launcher must attach to the original Codex process instead of starting a copy"
+  exit 1
+fi
+
 if /usr/bin/find "$repo_root" \( -path "$repo_root/.git" -o -path "$repo_root/dist" \) -prune -o \( -type f -name '*.icns' -o -type d -name '*.app' \) -print | /usr/bin/grep -q .; then
   print -u2 "The source tree must not redistribute OpenAI app bundles or icons"
   exit 1

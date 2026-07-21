@@ -236,7 +236,7 @@
     const candidate = scrollableCandidates()[0]?.element ?? document.scrollingElement;
     if (!candidate) return false;
 
-    const distance = Math.max(420, Math.min(800, candidate.clientHeight * 0.62));
+    const distance = Math.max(80, Math.round(candidate.clientHeight * 0.2));
     candidate.scrollBy({ top: direction * distance, left: 0, behavior: "auto" });
     globalThis.__codexMicroAddonsConversationScroll.lastScroll = {
       direction,

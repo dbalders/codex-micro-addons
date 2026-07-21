@@ -36,7 +36,7 @@ For host actions, the sidecar exposes one CDP binding. Requests are JSON objects
 
 ## Conversation scrolling
 
-`addons/conversation-scroll/injected.js` adds a third option to the native knob menu. It installs a document-start message gate so that, while selected, only encoder-turn messages (`act: 2`, `ENC_CW`, `ENC_CC`) are withheld from native listeners. Each turn immediately scrolls the highest-scoring conversation viewport by about 62 percent of its height. Encoder press and release events remain native.
+`addons/conversation-scroll/injected.js` adds a third option to the native knob menu. It installs a document-start message gate so that, while selected, only encoder-turn messages (`act: 2`, `ENC_CW`, `ENC_CC`) are withheld from native listeners. Each turn immediately scrolls the highest-scoring conversation viewport by about 20 percent of its height. Encoder press and release events remain native.
 
 ## Focus thread window
 
